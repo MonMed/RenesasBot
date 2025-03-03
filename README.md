@@ -12,7 +12,7 @@ This bot needs to be deployed on the cloud with a streamlit interface.
 python -m venv venv  
 Set -ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser  
 venv\Scripts\activate  
-pip install requests beautifulsoup4 selenium pandas bs4  
+pip install requests beautifulsoup4 selenium pandas bs4 selenium webdriver-manager  
 pip list
 
 ------------------------
