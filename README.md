@@ -18,4 +18,9 @@ pip list
 Bash: cd /d/  
 cd /Monica_D/Intellectual/AI/vettura/RenesasBot  
 
+git status  
+git add .  
+git commit -m "Random text"    
+git push origin main  
+
 ------------------------
