@@ -49,7 +49,7 @@ def get_article_id(url):
 
 
 # URL of the page
-article_url = "https://en-support.renesas.com/knowledgeBase/21319165"
+article_url = "https://en-support.renesas.com/knowledgeBase/21671815"
 article_id = get_article_id(article_url)
 file_name = f"{article_id}.pdf"
 file_path = os.path.join(OUTPUT_DIR, file_name)

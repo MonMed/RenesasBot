@@ -2,6 +2,7 @@ import os
 import requests 
 import time
 from selenium import webdriver
+from urllib.parse import urlparse
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -90,15 +91,60 @@ def get_article_links(subcategory_url):
         print("No articles found.")
     return article_links
 
+def extract_content(article_url):
+    driver.get(article_url)
+    time.sleep(5)
+    soup = BeautifulSoup(driver.page_source,"html.parser")
+
+    title_tag = soup.find("h2", class_="ng-binding")
+    title = title_tag.get_text(strip=True) if title_tag else "Untitled Article"
+
+    content_divs = soup.find_all("div", class_="ng-binding", attrs={"ng-bind-html": "ArticleBody.Description"})
+    content = "\n\n".join(div.get_text("\n", strip=True) for div in content_divs)
+
+    return title, content
+
+def save_pdf(title, content, file_path):
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    pdf.set_font("Arial", style="B", size=16)
+    pdf.multi_cell(0, 10, title)
+    pdf.ln(5)
+
+    pdf.set_font("Arial", size=12)
+    content = content.encode("latin-1","ignore").decode("latin-1")
+    pdf.multi_cell(0, 10, content)
+
+    pdf.output(file_path)
+    
+def get_article_id(article_url):
+
+    return os.path.basename(urlparse(article_url).path)
+
+
 all_categories = get_category_links(BASE_URL)
 
 for category_name, category_url in all_categories:
-    if category_name in TARGET_CATEGORIES:
-        subcategories = get_subcategories(category_name, category_url)
+    subcategories = get_subcategories(category_name, category_url)
 
-        for subcategory_name, subcategory_url in subcategories:
-            article_links = get_article_links(subcategory_url)
-    
+    for subcategory_name, subcategory_url in subcategories:
+        subcategory_folder = os.path.join(OUTPUT_DIR, category_name, subcategory_name)
+        os.makedirs(subcategory_folder, exist_ok=True)
+        article_links = get_article_links(subcategory_url)
+
+        for article_name, article_url in article_links:
+            article_id = get_article_id(article_url)
+            file_name = f"{article_id}.pdf"
+            file_path = os.path.join(subcategory_folder, file_name)
+
+            print(f"Extracting and saving: {article_name} -> {file_path}")
+            title, content = extract_content(article_url)
+            save_pdf(title, content, file_path)
+
+print("\nAll pdfs have been saved successfully")    
 
 
 
