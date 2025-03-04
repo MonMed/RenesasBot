@@ -1,46 +1,61 @@
-import os 
-import requests 
-import time
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-from bs4 import BeautifulSoup
+import os
+import time 
+from bs4 import BeautifulSoup 
 from fpdf import FPDF
+from urllib.parse import urlparse 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service 
+from selenium.webdriver.chrome.options import Options 
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager 
 
-# Set up Selenium WebDriver
+
+
+# Folder to save PDFs
+OUTPUT_DIR = "Files"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 options = Options()
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=options)
 
-# Function to get subcategories, now focused on 'USB' subcategory
-def get_article_links(url):
+def extract_content(url, file_path):
+    """Extract content from the URL and save it as a PDF."""
     driver.get(url)
-    time.sleep(5)  # Allow page to load
-
+    time.sleep(5)
     soup = BeautifulSoup(driver.page_source, "html.parser")
     #print(soup.prettify())
-    article_links = []
-    article_elements = soup.select(".article-link.ng-scope a.article.ng-binding")
-    
-    if article_elements:
-        print("Articles found")
-        for article in article_elements[:2]:  # Get first two articles
-            article_url = "https://en-support.renesas.com" + article["href"]
-            article_name = article.get_text(strip=True)
-            print(f"Article name {article_name}, URL: {article_url}")
-            article_links.append((article_name, article_url))
-    else:
-        print("Not found")
+    title_tag = soup.find("h2",class_="ng-binding")
+    title = title_tag.get_text(strip=True) if title_tag else "Untitled Artciel"
+    content_divs = soup.find_all("div",class_="ng-binding", attrs={"ng-bind-html":"ArticleBody.Description"})
+    content = "\n\n".join(div.get_text("\n",strip=True) for div in content_divs)
+    print(title,content)
+    return title, content
 
-    # return article_links
+def save_pdf(title, content, file_path):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True,margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", style="B", size=16)
+    pdf.multi_cell(0,10,title)
+    pdf.ln(5)
 
-# Define the URL for the RA Family subcategory page
-url = "https://en-support.renesas.com/knowledgeBase/category/31087/subcategory/31655"  # Replace with correct URL if necessary
+    pdf.set_font("Arial",size=12)
+    pdf.multi_cell(0,10,content)
 
-# Test the function with the specified category
-get_article_links(url)
+    pdf.output(file_path)
 
+def get_article_id(url):
+    return os.path.basename(urlparse(url).path)
+
+
+# URL of the page
+article_url = "https://en-support.renesas.com/knowledgeBase/21319165"
+article_id = get_article_id(article_url)
+file_name = f"{article_id}.pdf"
+file_path = os.path.join(OUTPUT_DIR, file_name)
+
+# Extract content and save as PDF
+title, content = extract_content(article_url, file_path)
+save_pdf(title, content, file_path)
+
+print(f"Content from {article_url} has been saved to {file_path}")
